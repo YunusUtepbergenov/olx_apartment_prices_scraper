@@ -33,9 +33,8 @@ fx_rate_xpath = '//div[@class="exchange__content"]//div[@class="exchange__item_v
 fx_rates = fx_rate_selector.xpath(fx_rate_xpath)
 fx_rates = fx_rates.xpath('./text()').extract()
 usd_to_uzs = float(fx_rates[0].replace(' = ', ''))
-# uzd_to_uzs = 11155.12;
 
-column_names = ['link', 'date', 'price', 'home_type', 'city', 'district',
+column_names = ['link', 'date', 'price', 'home_type', 'city',
                         'furnished', 'commission', 'num_rooms', 'area', 'apart_floor',
                         'home_floor', 'condition', 'build_type', 'build_plan',
                         'build_year', 'bathroom', 'ceil_height', 'hospital',
@@ -49,11 +48,17 @@ month_dict = {
             compile('^Сегодня.*'): today, compile('^Вчера.*'): yesterday
             }
 
+# option = webdriver.ChromeOptions()
+# chrome_prefs = {}
+# option.experimental_options["prefs"] = chrome_prefs
+# chrome_prefs["profile.default_content_settings"] = {"images": 2}
+# chrome_prefs["profile.managed_default_content_settings"] = {"images": 2}
 # driver = webdriver.Chrome(executable_path=r"C:/SeleniumDrivers/chromedriver.exe")
-# options= webdriver.EdgeOptions()
-# options.add_argument("headless")
-# options.add_argument("disable-gpu")
-driver = webdriver.Edge(executable_path=r"C:/SeleniumDrivers/Edge/msedgedriver.exe")
+# driver = webdriver.Chrome(executable_path=r"C:\SeleniumDrivers\Mozilla\geckodriver.exe")
+options= webdriver.EdgeOptions()
+options.add_argument("headless")
+options.add_argument("disable-gpu")
+driver = webdriver.Edge(executable_path=r"C:/SeleniumDrivers/Edge/msedgedriver.exe", options=options)
 
 
 for ctr, code in enumerate(district_code_list):
@@ -62,16 +67,13 @@ for ctr, code in enumerate(district_code_list):
     for house in house_type:
         for frn in furnished_type:
             for cms in comission_type:
-                olx_link = 'https://www.olx.uz/d/nedvizhimost/kvartiry/prodazha/tashkent/?search%5Bdistrict_id%5D=' + str(code) + '&search%5Bfilter_enum_furnished%5D%5B0%5D=' + frn + '&search%5Bfilter_enum_comission%5D%5B0%5D=' + cms + '&search%5Bfilter_enum_type_of_market%5D%5B0%5D=' + house
+                olx_link = 'https://www.olx.uz/d/nedvizhimost/kvartiry/arenda-dolgosrochnaya/tashkent/?search%5Bdistrict_id%5D=' + str(code) + '&search%5Bfilter_enum_furnished%5D%5B0%5D=' + frn + '&search%5Bfilter_enum_comission%5D%5B0%5D=' + cms
                 print(olx_link)
                 driver.get(olx_link)
                 html_text = driver.page_source
                 soup = BeautifulSoup(html_text, 'lxml')
-                if soup.find('div', attrs={'data-testid': 'total-count'}):
-                    total_count = soup.find('div', attrs={'data-testid': 'total-count'}).text
-                    s = ''.join(x for x in total_count if x.isdigit())
-                else:
-                    s = 0
+                total_count = soup.find('div', attrs={'data-testid': 'total-count'}).text
+                s = ''.join(x for x in total_count if x.isdigit())
 
                 if int(s) > 0 :
                     num_pages = ceil(int(s) / 39)
@@ -102,11 +104,10 @@ for ctr, code in enumerate(district_code_list):
 
                                 try:
                                     district_list = html_selector.xpath('//*[@id="root"]//a/text()').extract()
-                                    district_pattern = compile(r'Продажа - (.*)')
+                                    district_pattern = compile(r'Аренда долгосрочная - (.*)')
                                     district = list(filter(district_pattern.match, district_list))[1]
                                     district = sub(district_pattern, r'\1', district)
                                     dataframe.at[row, 'city'] = district
-                                    dataframe.at[row, 'district'] = district_dict[code]
                                 except:
                                     pass
 
@@ -353,4 +354,4 @@ for ctr, code in enumerate(district_code_list):
                                         subset=['price', 'num_rooms', 'area', 'apart_floor'])
                                 row = row + 1
     dataframe.to_excel(district_dict[code] + ".xlsx")
-    print(district_dict[code] + ".xls file is ready")
+    print(district_dict[code] + ".xlsx file is ready")
