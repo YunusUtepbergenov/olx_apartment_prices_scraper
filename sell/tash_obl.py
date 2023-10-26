@@ -49,6 +49,7 @@ month_dict = {
 options= webdriver.EdgeOptions()
 options.add_argument("headless")
 options.add_argument("disable-gpu")
+options.add_argument('--log-level=3')
 driver = webdriver.Edge(executable_path=r"C:/SeleniumDrivers/Edge/msedgedriver.exe", options=options)
 
 for ctr, region in enumerate(regions):
@@ -58,8 +59,8 @@ for ctr, region in enumerate(regions):
     html_text = driver.page_source
 
     soup = BeautifulSoup(html_text, 'lxml')
-    if soup.find('div', attrs={'data-testid': 'total-count'}):
-        total_count = soup.find('div', attrs={'data-testid': 'total-count'}).text
+    if soup.find('span', attrs={'data-testid': 'total-count'}):
+        total_count = soup.find('span', attrs={'data-testid': 'total-count'}).text
         s = ''.join(x for x in total_count if x.isdigit())
     else:
         continue
@@ -77,7 +78,7 @@ for ctr, region in enumerate(regions):
             driver.get(page_link)
             html = driver.page_source
             soup = BeautifulSoup(html, 'lxml')
-            all_table = soup.find('div', class_="css-pband8")
+            all_table = soup.find('div', class_="css-oukcj3")
 
             if all_table:
                 apartments = all_table.find_all('div', attrs={'data-cy': 'l-card'})
@@ -92,11 +93,8 @@ for ctr, region in enumerate(regions):
                     dataframe.at[row, 'link'] = link['href']
 
                     try:
-                        district_list = html_selector.xpath('//*[@id="root"]//a/text()').extract()
-                        district_pattern = compile(r'Продажа - (.*)')
-                        district = list(filter(district_pattern.match, district_list))[1]
-                        district = sub(district_pattern, r'\1', district)
-                        dataframe.at[row, 'city'] = district
+                        location = soup1.find('section', class_="css-16sja3n")
+                        dataframe.at[row, 'city'] = location.find('p', class_="css-1cju8pu er34gjf0").text
                     except:
                         pass
 
@@ -109,8 +107,7 @@ for ctr, region in enumerate(regions):
                         pass
 
                     try:
-                        price_list = html_selector.xpath('//*[@id="root"]/div[1]/div[3]/div[2]/div[1]/div[2]/div[3]/h3')
-                        price_list = soup1.find('h3', class_="eu5v0x0").text
+                        price_list = soup1.find('h3', class_="css-1twl9tf er34gjf0").text
                         num = ""
                         for c in price_list:
                             if c.isdigit():
@@ -127,7 +124,7 @@ for ctr, region in enumerate(regions):
 
                     # Other details
                     try:
-                        other_details = soup1.find_all('p', class_="css-xl6fe0-Text eu5v0x0")
+                        other_details = soup1.find_all('p', class_="css-b5m1rv er34gjf0")
 
                     except:
                         other_details = ''
@@ -279,24 +276,26 @@ for ctr, region in enumerate(regions):
 
                     # Title and text parts
                     try:
-                        title = soup1.find('h1', class_="eu5v0x0").text
-                        print(title)
+                        title = soup1.find('h1', class_="css-1dhh6hr er34gjf0").text
                         dataframe.at[row, 'title_text'] = title
                     except:
                         pass
 
                     try:
-                        content = soup1.find('div', class_="css-g5mtbi-Text").text
+                        content = soup1.find('div', class_="css-1t507yq er34gjf0").text
                         dataframe.at[row, 'post_text'] = content
                     except:
                         pass
 
                     # Extra Details
+                    close_things = ''
                     try:
-                        close_things_pattern = compile(r'Рядом есть:')
-                        close_things = list(filter(close_things_pattern.match, other_details))[0]
+                        for other in other_details:
+                            if 'Рядом есть:' in other.text:
+                                close_things = other.text.replace('Рядом есть: ', '')
+                                break
                     except:
-                        close_things = ''
+                        pass
 
                     if 'Больница' in close_things:
                         dataframe.at[row, 'hospital'] = True
@@ -342,5 +341,5 @@ for ctr, region in enumerate(regions):
                     dataframe.dropna(how='all', inplace=True,
                             subset=['price', 'num_rooms', 'area', 'apart_floor'])
                     row = row + 1
-        dataframe.to_excel(region + ".xlsx")
-        print(region + ".xls file is ready")
+        dataframe.to_excel('tash_obl/' + region + ".xlsx")
+        print( region + ".xls file is ready")

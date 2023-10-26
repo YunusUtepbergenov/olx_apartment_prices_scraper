@@ -7,7 +7,7 @@ from scrapy import Selector
 from re import compile, sub
 from math import ceil
 from selenium import webdriver
-
+import time
 
 district_dict = {
             20: 'Olmazor', 18: 'Bektemir', 13: 'Mirobod', 12: 'Mirzo-Ulugbek',
@@ -15,11 +15,10 @@ district_dict = {
             25: 'Yunusobod', 26: 'Yakkasaroy', 22: 'Yashnobod'
         }
 
-district_code_list = [20, 18, 13, 12, 19, 21, 23, 24, 25, 26, 22]
+district_code_list = [20,18,13,12,19,21,23,24,25,26,22]
 furnished_type = ['yes', 'no']
 comission_type = ['yes', 'no']
 house_type = ['secondary', 'primary']
-
 
 today = date.today()
 yesterday = today - timedelta(days=1)
@@ -33,7 +32,6 @@ fx_rate_xpath = '//div[@class="exchange__content"]//div[@class="exchange__item_v
 fx_rates = fx_rate_selector.xpath(fx_rate_xpath)
 fx_rates = fx_rates.xpath('./text()').extract()
 usd_to_uzs = float(fx_rates[0].replace(' = ', ''))
-# uzd_to_uzs = 11155.12;
 
 column_names = ['link', 'date', 'price', 'home_type', 'city', 'district',
                         'furnished', 'commission', 'num_rooms', 'area', 'apart_floor',
@@ -47,14 +45,17 @@ month_dict = {
             ' июля ': '-07-', ' августа ': '-08-', ' сентября ': '-09-',
             ' октября ': '-10-', ' ноября ': '-11-', ' декабря ': '-12-',
             compile('^Сегодня.*'): today, compile('^Вчера.*'): yesterday
-            }
+        }
 
 # driver = webdriver.Chrome(executable_path=r"C:/SeleniumDrivers/chromedriver.exe")
 # options= webdriver.EdgeOptions()
-# options.add_argument("headless")
-# options.add_argument("disable-gpu")
-driver = webdriver.Edge(executable_path=r"C:/SeleniumDrivers/Edge/msedgedriver.exe")
+options= webdriver.ChromeOptions()
 
+options.add_argument("headless")
+options.add_argument("disable-gpu")
+options.add_argument('--log-level=3')
+
+driver = webdriver.Chrome(executable_path=r"C:/SeleniumDrivers/chromedriver.exe", options=options)
 
 for ctr, code in enumerate(district_code_list):
     dataframe = DataFrame(columns=column_names)
@@ -63,13 +64,14 @@ for ctr, code in enumerate(district_code_list):
         for frn in furnished_type:
             for cms in comission_type:
                 olx_link = 'https://www.olx.uz/d/nedvizhimost/kvartiry/prodazha/tashkent/?search%5Bdistrict_id%5D=' + str(code) + '&search%5Bfilter_enum_furnished%5D%5B0%5D=' + frn + '&search%5Bfilter_enum_comission%5D%5B0%5D=' + cms + '&search%5Bfilter_enum_type_of_market%5D%5B0%5D=' + house
-                print(olx_link)
+                # print(olx_link)
                 driver.get(olx_link)
                 html_text = driver.page_source
                 soup = BeautifulSoup(html_text, 'lxml')
-                if soup.find('div', attrs={'data-testid': 'total-count'}):
-                    total_count = soup.find('div', attrs={'data-testid': 'total-count'}).text
+                if soup.find('span', attrs={'data-testid': 'total-count'}):
+                    total_count = soup.find('span', attrs={'data-testid': 'total-count'}).text
                     s = ''.join(x for x in total_count if x.isdigit())
+                    print(s)
                 else:
                     s = 0
 
@@ -84,7 +86,7 @@ for ctr, code in enumerate(district_code_list):
                         driver.get(page_link)
                         html = driver.page_source
                         soup = BeautifulSoup(html, 'lxml')
-                        all_table = soup.find('div', class_="css-pband8")
+                        all_table = soup.find('div', class_="css-oukcj3")
 
                         if all_table:
                             
@@ -93,7 +95,13 @@ for ctr, code in enumerate(district_code_list):
                             for apartment in apartments:
                                 link = apartment.find("a", class_="css-rc5s2u")
                                 #Pasted code
-                                driver.get("https://www.olx.uz" + link['href'])
+                                for i in range(8):
+                                    try:
+                                        driver.get("https://www.olx.uz" + link['href'])
+                                        break
+                                    except:
+                                        time.sleep(2)
+                                        continue
                                 html = driver.page_source
                                 soup1 = BeautifulSoup(html, 'lxml')
                                 html_selector = Selector(text=html)
@@ -101,15 +109,11 @@ for ctr, code in enumerate(district_code_list):
                                 dataframe.at[row, 'link'] = link['href']
 
                                 try:
-                                    district_list = html_selector.xpath('//*[@id="root"]//a/text()').extract()
-                                    district_pattern = compile(r'Продажа - (.*)')
-                                    district = list(filter(district_pattern.match, district_list))[1]
-                                    district = sub(district_pattern, r'\1', district)
-                                    dataframe.at[row, 'city'] = district
+                                    location = soup1.find('section', class_="css-16sja3n")
+                                    dataframe.at[row, 'city'] = location.find('p', class_="css-b5m1rv er34gjf0").text
                                     dataframe.at[row, 'district'] = district_dict[code]
                                 except:
                                     pass
-
 
                                 try:
                                     date_xpath = '//*[@id="root"]/div[1]/div[3]/div[2]/div[1]/div[2]/div[1]/span/span'
@@ -118,9 +122,11 @@ for ctr, code in enumerate(district_code_list):
                                 except:
                                     pass
 
+                                # with open('readme.txt', 'wb') as f:
+                                #     f.write(soup1.encode('utf-8'))
+
                                 try:
-                                    price_list = html_selector.xpath('//*[@id="root"]/div[1]/div[3]/div[2]/div[1]/div[2]/div[3]/h3')
-                                    price_list = soup1.find('h3', class_="eu5v0x0").text
+                                    price_list = soup1.find('h3', class_="css-1twl9tf er34gjf0").text
                                     num = ""
                                     for c in price_list:
                                         if c.isdigit():
@@ -137,7 +143,7 @@ for ctr, code in enumerate(district_code_list):
 
                                 # Other details
                                 try:
-                                    other_details = soup1.find_all('p', class_="css-xl6fe0-Text eu5v0x0")
+                                    other_details = soup1.find_all('p', class_="css-b5m1rv er34gjf0")
 
                                 except:
                                     other_details = ''
@@ -243,7 +249,6 @@ for ctr, code in enumerate(district_code_list):
                                     pass
 
                                 try:
-                                    furnished_pattern = compile(r'Меблирована: (.*)')
                                     for other in other_details:
                                         if 'Меблирована:' in other.text:
                                             furnished = other.text.replace('Меблирована: ', '')
@@ -253,7 +258,6 @@ for ctr, code in enumerate(district_code_list):
                                     pass
 
                                 try:
-                                    height_pattern = compile(r'Высота потолков: (.*)')
                                     for other in other_details:
                                         if 'Высота потолков:' in other.text:
                                             height = other.text.replace('Высота потолков: ', '')
@@ -269,7 +273,6 @@ for ctr, code in enumerate(district_code_list):
                                     pass
 
                                 try:
-                                    condition_pattern = compile(r'Ремонт: (.*)')
                                     for other in other_details:
                                         if 'Ремонт:' in other.text:
                                             condition = other.text.replace('Ремонт: ', '')
@@ -278,35 +281,35 @@ for ctr, code in enumerate(district_code_list):
                                     pass
 
                                 try:
-                                    commission_pattern = compile(r'Комиссионные: (.*)')
                                     for other in other_details:
                                         if 'Комиссионные:' in other.text:
                                             commission = other.text.replace('Комиссионные: ', '')
-                                    # commission = sub(commission_pattern, r'\1', commission)
                                     dataframe.at[row, 'commission'] = {'Да': True, 'Нет': False}.get(commission)
                                 except:
                                     pass
 
                                 # Title and text parts
                                 try:
-                                    title = soup1.find('h1', class_="eu5v0x0").text
-                                    # print(title)
+                                    title = soup1.find('h1', class_="css-1dhh6hr er34gjf0").text
                                     dataframe.at[row, 'title_text'] = title
                                 except:
                                     pass
 
                                 try:
-                                    content = soup1.find('div', class_="css-g5mtbi-Text").text
+                                    content = soup1.find('div', class_="css-1t507yq er34gjf0").text
                                     dataframe.at[row, 'post_text'] = content
                                 except:
                                     pass
 
                                 # Extra Details
+                                close_things = ''
                                 try:
-                                    close_things_pattern = compile(r'Рядом есть:')
-                                    close_things = list(filter(close_things_pattern.match, other_details))[0]
+                                    for other in other_details:
+                                        if 'Рядом есть:' in other.text:
+                                            close_things = other.text.replace('Рядом есть: ', '')
+                                            break
                                 except:
-                                    close_things = ''
+                                    pass
 
                                 if 'Больница' in close_things:
                                     dataframe.at[row, 'hospital'] = True

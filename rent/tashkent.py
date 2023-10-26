@@ -7,7 +7,7 @@ from scrapy import Selector
 from re import compile, sub
 from math import ceil
 from selenium import webdriver
-
+import time
 
 district_dict = {
             20: 'Olmazor', 18: 'Bektemir', 13: 'Mirobod', 12: 'Mirzo-Ulugbek',
@@ -15,11 +15,10 @@ district_dict = {
             25: 'Yunusobod', 26: 'Yakkasaroy', 22: 'Yashnobod'
         }
 
-district_code_list = [20, 18, 13, 12, 19, 21, 23, 24, 25, 26, 22]
+district_code_list = [20,18,13,12,19,21,23,24,25,26, 22]
 furnished_type = ['yes', 'no']
 comission_type = ['yes', 'no']
 house_type = ['secondary', 'primary']
-
 
 today = date.today()
 yesterday = today - timedelta(days=1)
@@ -34,12 +33,12 @@ fx_rates = fx_rate_selector.xpath(fx_rate_xpath)
 fx_rates = fx_rates.xpath('./text()').extract()
 usd_to_uzs = float(fx_rates[0].replace(' = ', ''))
 
-column_names = ['link', 'date', 'price', 'home_type', 'city',
-                        'furnished', 'commission', 'num_rooms', 'area', 'apart_floor',
-                        'home_floor', 'condition', 'build_type', 'build_plan',
-                        'build_year', 'bathroom', 'ceil_height', 'hospital',
-                        'playground', 'kindergarten', 'park', 'recreation', 'school',
-                        'restaurant', 'supermarket', 'title_text', 'post_text']
+column_names = ['link', 'date', 'price', 'city', 'district',
+                    'furnished', 'commission', 'num_rooms', 'area', 'apart_floor',
+                    'home_floor', 'condition', 'build_type', 'build_plan',
+                    'build_year', 'bathroom', 'ceil_height', 'hospital',
+                    'playground', 'kindergarten', 'park', 'recreation', 'school',
+                    'restaurant', 'supermarket', 'title_text', 'post_text']
 month_dict = {
             ' г.': '', ' января ': '-01-', ' февраля ': '-02-', ' марта ': '-03-',
             ' апреля ': '-04-', ' мая ': '-05-', ' июня ': '-06-',
@@ -47,19 +46,13 @@ month_dict = {
             ' октября ': '-10-', ' ноября ': '-11-', ' декабря ': '-12-',
             compile('^Сегодня.*'): today, compile('^Вчера.*'): yesterday
             }
+options= webdriver.ChromeOptions()
 
-# option = webdriver.ChromeOptions()
-# chrome_prefs = {}
-# option.experimental_options["prefs"] = chrome_prefs
-# chrome_prefs["profile.default_content_settings"] = {"images": 2}
-# chrome_prefs["profile.managed_default_content_settings"] = {"images": 2}
-# driver = webdriver.Chrome(executable_path=r"C:/SeleniumDrivers/chromedriver.exe")
-# driver = webdriver.Chrome(executable_path=r"C:\SeleniumDrivers\Mozilla\geckodriver.exe")
-options= webdriver.EdgeOptions()
 options.add_argument("headless")
 options.add_argument("disable-gpu")
-driver = webdriver.Edge(executable_path=r"C:/SeleniumDrivers/Edge/msedgedriver.exe", options=options)
+options.add_argument('--log-level=3')
 
+driver = webdriver.Chrome(executable_path=r"C:/SeleniumDrivers/chromedriver.exe", options=options)
 
 for ctr, code in enumerate(district_code_list):
     dataframe = DataFrame(columns=column_names)
@@ -72,7 +65,7 @@ for ctr, code in enumerate(district_code_list):
                 driver.get(olx_link)
                 html_text = driver.page_source
                 soup = BeautifulSoup(html_text, 'lxml')
-                total_count = soup.find('div', attrs={'data-testid': 'total-count'}).text
+                total_count = soup.find('span', attrs={'data-testid': 'total-count'}).text
                 s = ''.join(x for x in total_count if x.isdigit())
 
                 if int(s) > 0 :
@@ -86,16 +79,21 @@ for ctr, code in enumerate(district_code_list):
                         driver.get(page_link)
                         html = driver.page_source
                         soup = BeautifulSoup(html, 'lxml')
-                        all_table = soup.find('div', class_="css-pband8")
+                        all_table = soup.find('div', class_="css-oukcj3")
 
                         if all_table:
-                            
-                        #Getting one apartment info
+                            #Getting one apartment info
                             apartments = all_table.find_all('div', attrs={'data-cy': 'l-card'})
                             for apartment in apartments:
                                 link = apartment.find("a", class_="css-rc5s2u")
                                 #Pasted code
-                                driver.get("https://www.olx.uz" + link['href'])
+                                for i in range(5):
+                                    try:
+                                        driver.get("https://www.olx.uz" + link['href'])
+                                        break
+                                    except:
+                                        time.sleep(2)
+                                        continue
                                 html = driver.page_source
                                 soup1 = BeautifulSoup(html, 'lxml')
                                 html_selector = Selector(text=html)
@@ -103,14 +101,11 @@ for ctr, code in enumerate(district_code_list):
                                 dataframe.at[row, 'link'] = link['href']
 
                                 try:
-                                    district_list = html_selector.xpath('//*[@id="root"]//a/text()').extract()
-                                    district_pattern = compile(r'Аренда долгосрочная - (.*)')
-                                    district = list(filter(district_pattern.match, district_list))[1]
-                                    district = sub(district_pattern, r'\1', district)
-                                    dataframe.at[row, 'city'] = district
+                                    location = soup1.find('section', class_="css-16sja3n")
+                                    dataframe.at[row, 'city'] = location.find('p', class_="css-b5m1rv er34gjf0").text
+                                    dataframe.at[row, 'district'] = district_dict[code]
                                 except:
                                     pass
-
 
                                 try:
                                     date_xpath = '//*[@id="root"]/div[1]/div[3]/div[2]/div[1]/div[2]/div[1]/span/span'
@@ -120,8 +115,7 @@ for ctr, code in enumerate(district_code_list):
                                     pass
 
                                 try:
-                                    price_list = html_selector.xpath('//*[@id="root"]/div[1]/div[3]/div[2]/div[1]/div[2]/div[3]/h3')
-                                    price_list = soup1.find('h3', class_="eu5v0x0").text
+                                    price_list = soup1.find('h3', class_="css-1twl9tf er34gjf0").text
                                     num = ""
                                     for c in price_list:
                                         if c.isdigit():
@@ -138,20 +132,11 @@ for ctr, code in enumerate(district_code_list):
 
                                 # Other details
                                 try:
-                                    other_details = soup1.find_all('p', class_="css-xl6fe0-Text eu5v0x0")
+                                    other_details = soup1.find_all('p', class_="css-b5m1rv er34gjf0")
 
                                 except:
                                     other_details = ''
 
-                                try:
-                                    home_type_pattern = compile(r'Тип жилья: (.*)')
-                                    for other in other_details:
-                                        if 'Тип жилья' in other.text:
-                                            home_type = other.text.replace('Тип жилья:', '')
-                                    home_type = sub(home_type_pattern, r'\1', home_type)
-                                    dataframe.at[row, 'home_type'] = home_type
-                                except:
-                                    pass
                                 try:
                                     rooms_pattern = compile(r'Количество комнат: (\d+).*')
                                     for other in other_details:
@@ -290,22 +275,23 @@ for ctr, code in enumerate(district_code_list):
 
                                 # Title and text parts
                                 try:
-                                    title = soup1.find('h1', class_="eu5v0x0").text
-                                    # print(title)
+                                    title = soup1.find('h1', class_="css-1dhh6hr er34gjf0").text
                                     dataframe.at[row, 'title_text'] = title
                                 except:
                                     pass
 
                                 try:
-                                    content = soup1.find('div', class_="css-g5mtbi-Text").text
+                                    content = soup1.find('div', class_="css-1t507yq er34gjf0").text
                                     dataframe.at[row, 'post_text'] = content
                                 except:
                                     pass
 
                                 # Extra Details
                                 try:
-                                    close_things_pattern = compile(r'Рядом есть:')
-                                    close_things = list(filter(close_things_pattern.match, other_details))[0]
+                                    for other in other_details:
+                                        if 'Рядом есть:' in other.text:
+                                            close_things = other.text.replace('Рядом есть: ', '')
+                                            break
                                 except:
                                     close_things = ''
 

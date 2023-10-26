@@ -44,15 +44,19 @@ month_dict = {
 options= webdriver.EdgeOptions()
 options.add_argument("headless")
 options.add_argument("disable-gpu")
+options.add_argument('--log-level=3')
 driver = webdriver.Edge(executable_path=r"C:/SeleniumDrivers/Edge/msedgedriver.exe", options=options)
 
 
 for ctr, region in enumerate(regions):
+    dataframe = DataFrame(columns=column_names)
+    row = 1
+
     olx_link = 'https://www.olx.uz/d/nedvizhimost/kvartiry/arenda-dolgosrochnaya/' + region + '/'
     driver.get(olx_link)
     html_text = driver.page_source
     soup = BeautifulSoup(html_text, 'lxml')
-    total_count = soup.find('div', attrs={'data-testid': 'total-count'}).text
+    total_count = soup.find('span', attrs={'data-testid': 'total-count'}).text
     s = ''.join(x for x in total_count if x.isdigit())
 
     if int(s) > 0 :
@@ -60,16 +64,13 @@ for ctr, region in enumerate(regions):
         num_pages = min(num_pages, 25)
         print("Calculating " + region + " and Total " + str(num_pages) + " pages")
 
-        dataframe = DataFrame(columns=column_names)
-        row = 1
-
         for page in range(num_pages):
             print("Scraping page: " + str(page + 1))
             page_link = olx_link + '?page=' + str(page+1)
             driver.get(page_link)
             html = driver.page_source
             soup = BeautifulSoup(html, 'lxml')
-            all_table = soup.find('div', class_="css-pband8")
+            all_table = soup.find('div', class_="css-oukcj3")
 
             if all_table:
                 
@@ -85,14 +86,10 @@ for ctr, region in enumerate(regions):
                     dataframe.at[row, 'link'] = link['href']
 
                     try:
-                        district_list = html_selector.xpath('//*[@id="root"]//a/text()').extract()
-                        district_pattern = compile(r'Аренда долгосрочная - (.*)')
-                        district = list(filter(district_pattern.match, district_list))[1]
-                        district = sub(district_pattern, r'\1', district)
-                        dataframe.at[row, 'city'] = district
+                        texts = soup1.find_all('p', class_="css-b5m1rv er34gjf0")
+                        dataframe.at[row, 'city'] = texts[-1].text
                     except:
                         pass
-
 
                     try:
                         date_xpath = '//*[@id="root"]/div[1]/div[3]/div[2]/div[1]/div[2]/div[1]/span/span'
@@ -102,8 +99,7 @@ for ctr, region in enumerate(regions):
                         pass
 
                     try:
-                        price_list = html_selector.xpath('//*[@id="root"]/div[1]/div[3]/div[2]/div[1]/div[2]/div[3]/h3')
-                        price_list = soup1.find('h3', class_="eu5v0x0").text
+                        price_list = soup1.find('h3', class_="css-1twl9tf er34gjf0").text
                         num = ""
                         for c in price_list:
                             if c.isdigit():
@@ -120,7 +116,7 @@ for ctr, region in enumerate(regions):
 
                     # Other details
                     try:
-                        other_details = soup1.find_all('p', class_="css-xl6fe0-Text eu5v0x0")
+                        other_details = soup1.find_all('p', class_="css-b5m1rv er34gjf0")
 
                     except:
                         other_details = ''
@@ -272,22 +268,23 @@ for ctr, region in enumerate(regions):
 
                     # Title and text parts
                     try:
-                        title = soup1.find('h1', class_="eu5v0x0").text
-                        print(title)
+                        title = soup1.find('h1', class_="css-1dhh6hr er34gjf0").text
                         dataframe.at[row, 'title_text'] = title
                     except:
                         pass
 
                     try:
-                        content = soup1.find('div', class_="css-g5mtbi-Text").text
+                        content = soup1.find('div', class_="css-1t507yq er34gjf0").text
                         dataframe.at[row, 'post_text'] = content
                     except:
                         pass
 
                     # Extra Details
                     try:
-                        close_things_pattern = compile(r'Рядом есть:')
-                        close_things = list(filter(close_things_pattern.match, other_details))[0]
+                        for other in other_details:
+                            if 'Рядом есть:' in other.text:
+                                close_things = other.text.replace('Рядом есть: ', '')
+                                break
                     except:
                         close_things = ''
 
