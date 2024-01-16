@@ -8,6 +8,7 @@ from re import compile, sub
 from math import ceil
 from selenium import webdriver
 import time
+from selenium.webdriver.chrome.service import Service
 
 district_dict = {
             20: 'Olmazor', 18: 'Bektemir', 13: 'Mirobod', 12: 'Mirzo-Ulugbek',
@@ -45,17 +46,19 @@ month_dict = {
             ' июля ': '-07-', ' августа ': '-08-', ' сентября ': '-09-',
             ' октября ': '-10-', ' ноября ': '-11-', ' декабря ': '-12-',
             compile('^Сегодня.*'): today, compile('^Вчера.*'): yesterday
-        }
+            }
 
 # driver = webdriver.Chrome(executable_path=r"C:/SeleniumDrivers/chromedriver.exe")
 # options= webdriver.EdgeOptions()
+service = Service(executable_path=r"C:/SeleniumDrivers/chromedriver.exe")
 options= webdriver.ChromeOptions()
-
 options.add_argument("headless")
-options.add_argument("disable-gpu")
+options.add_argument("--disable-gpu")
+options.add_argument('--blink-settings=imagesEnabled=false')
 options.add_argument('--log-level=3')
+driver = webdriver.Chrome(service=service, options=options)
+# driver = webdriver.Edge(executable_path=r"C:/SeleniumDrivers/Edge/msedgedriver.exe", options=options)
 
-driver = webdriver.Chrome(executable_path=r"C:/SeleniumDrivers/chromedriver.exe", options=options)
 
 for ctr, code in enumerate(district_code_list):
     dataframe = DataFrame(columns=column_names)
@@ -64,7 +67,6 @@ for ctr, code in enumerate(district_code_list):
         for frn in furnished_type:
             for cms in comission_type:
                 olx_link = 'https://www.olx.uz/d/nedvizhimost/kvartiry/prodazha/tashkent/?search%5Bdistrict_id%5D=' + str(code) + '&search%5Bfilter_enum_furnished%5D%5B0%5D=' + frn + '&search%5Bfilter_enum_comission%5D%5B0%5D=' + cms + '&search%5Bfilter_enum_type_of_market%5D%5B0%5D=' + house
-                # print(olx_link)
                 driver.get(olx_link)
                 html_text = driver.page_source
                 soup = BeautifulSoup(html_text, 'lxml')
@@ -95,17 +97,10 @@ for ctr, code in enumerate(district_code_list):
                             for apartment in apartments:
                                 link = apartment.find("a", class_="css-rc5s2u")
                                 #Pasted code
-                                for i in range(8):
-                                    try:
-                                        driver.get("https://www.olx.uz" + link['href'])
-                                        break
-                                    except:
-                                        time.sleep(2)
-                                        continue
+                                driver.get("https://www.olx.uz" + link['href'])
                                 html = driver.page_source
                                 soup1 = BeautifulSoup(html, 'lxml')
                                 html_selector = Selector(text=html)
-
                                 dataframe.at[row, 'link'] = link['href']
 
                                 try:
@@ -126,7 +121,7 @@ for ctr, code in enumerate(district_code_list):
                                 #     f.write(soup1.encode('utf-8'))
 
                                 try:
-                                    price_list = soup1.find('h3', class_="css-1twl9tf er34gjf0").text
+                                    price_list = soup1.find('h3', class_="css-12vqlj3").text
                                     num = ""
                                     for c in price_list:
                                         if c.isdigit():
@@ -138,6 +133,7 @@ for ctr, code in enumerate(district_code_list):
                                     elif not price_list.count('у.е.'):
                                         price = nan
                                     dataframe.at[row, 'price'] = price
+                                    
                                 except:
                                     pass
 
@@ -290,7 +286,7 @@ for ctr, code in enumerate(district_code_list):
 
                                 # Title and text parts
                                 try:
-                                    title = soup1.find('h1', class_="css-1dhh6hr er34gjf0").text
+                                    title = soup1.find('h4', class_="css-1juynto").text
                                     dataframe.at[row, 'title_text'] = title
                                 except:
                                     pass
@@ -357,3 +353,4 @@ for ctr, code in enumerate(district_code_list):
                                 row = row + 1
     dataframe.to_excel(district_dict[code] + ".xlsx")
     print(district_dict[code] + ".xls file is ready")
+driver.quit()

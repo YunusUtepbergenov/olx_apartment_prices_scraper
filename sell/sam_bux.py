@@ -99,7 +99,7 @@ for toh in type_of_house:
                             pass
 
                         try:
-                            price_list = soup1.find('h3', class_="css-1twl9tf er34gjf0").text
+                            price_list = soup1.find('h3', class_="css-12vqlj3").text
                             num = ""
                             for c in price_list:
                                 if c.isdigit():
@@ -268,7 +268,7 @@ for toh in type_of_house:
 
                         # Title and text parts
                         try:
-                            title = soup1.find('h1', class_="css-1dhh6hr er34gjf0").text
+                            title = soup1.find('h4', class_="css-1juynto").text
                             dataframe.at[row, 'title_text'] = title
                         except:
                             pass

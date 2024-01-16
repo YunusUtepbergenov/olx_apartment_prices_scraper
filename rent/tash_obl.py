@@ -8,6 +8,7 @@ from scrapy import Selector
 from re import compile, sub, findall
 from math import ceil
 from selenium import webdriver
+from selenium.webdriver.edge.service import Service
 
 regions = ['akkurgan', 'almalyk', 'angren', 'ahangaran','bekabad', 'buka','gazalkent', 'gulbahor','durmen', 'dustabad','zangiota', 'keles','kibraj', 
             'koksaroy','krasnogórsk', 'nazarbek','tojtepa', 'parkent', 'pskent', 'xojakent','chorvoq', 'chinaz','chirchik', 'eshanguzar',
@@ -46,11 +47,12 @@ month_dict = {
             compile('^Сегодня.*'): today, compile('^Вчера.*'): yesterday
             }
 
+service = Service(executable_path=r"C:/SeleniumDrivers/Edge/msedgedriver.exe")
 options= webdriver.EdgeOptions()
 options.add_argument("headless")
 options.add_argument("disable-gpu")
 options.add_argument('--log-level=3')
-driver = webdriver.Edge(executable_path=r"C:/SeleniumDrivers/Edge/msedgedriver.exe", options=options)
+driver = webdriver.Edge(service=service, options=options)
 
 for ctr, region in enumerate(regions):
     dataframe = DataFrame(columns=column_names)
@@ -107,7 +109,7 @@ for ctr, region in enumerate(regions):
                         pass
 
                     try:
-                        price_list = soup1.find('h3', class_="css-1twl9tf er34gjf0").text
+                        price_list = soup1.find('h3', class_="css-12vqlj3").text
                         num = ""
                         for c in price_list:
                             if c.isdigit():
@@ -276,7 +278,7 @@ for ctr, region in enumerate(regions):
 
                     # Title and text parts
                     try:
-                        title = soup1.find('h1', class_="css-1dhh6hr er34gjf0").text
+                        title = soup1.find('h4', class_="css-1juynto").text
                         dataframe.at[row, 'title_text'] = title
                     except:
                         pass

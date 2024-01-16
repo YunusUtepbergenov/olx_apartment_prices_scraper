@@ -8,6 +8,8 @@ from re import compile, sub
 from math import ceil
 from selenium import webdriver
 import time
+from selenium.webdriver.chrome.service import Service
+
 
 district_dict = {
             20: 'Olmazor', 18: 'Bektemir', 13: 'Mirobod', 12: 'Mirzo-Ulugbek',
@@ -15,7 +17,7 @@ district_dict = {
             25: 'Yunusobod', 26: 'Yakkasaroy', 22: 'Yashnobod'
         }
 
-district_code_list = [20,18,13,12,19,21,23,24,25,26, 22]
+district_code_list = [19]
 furnished_type = ['yes', 'no']
 comission_type = ['yes', 'no']
 house_type = ['secondary', 'primary']
@@ -46,13 +48,14 @@ month_dict = {
             ' октября ': '-10-', ' ноября ': '-11-', ' декабря ': '-12-',
             compile('^Сегодня.*'): today, compile('^Вчера.*'): yesterday
             }
+service = Service(executable_path=r"C:/SeleniumDrivers/chromedriver.exe")
 options= webdriver.ChromeOptions()
 
 options.add_argument("headless")
 options.add_argument("disable-gpu")
 options.add_argument('--log-level=3')
 
-driver = webdriver.Chrome(executable_path=r"C:/SeleniumDrivers/chromedriver.exe", options=options)
+driver = webdriver.Chrome(service=service, options=options)
 
 for ctr, code in enumerate(district_code_list):
     dataframe = DataFrame(columns=column_names)
@@ -115,7 +118,7 @@ for ctr, code in enumerate(district_code_list):
                                     pass
 
                                 try:
-                                    price_list = soup1.find('h3', class_="css-1twl9tf er34gjf0").text
+                                    price_list = soup1.find('h3', class_="css-12vqlj3").text
                                     num = ""
                                     for c in price_list:
                                         if c.isdigit():
@@ -275,7 +278,7 @@ for ctr, code in enumerate(district_code_list):
 
                                 # Title and text parts
                                 try:
-                                    title = soup1.find('h1', class_="css-1dhh6hr er34gjf0").text
+                                    title = soup1.find('h4', class_="css-1juynto").text
                                     dataframe.at[row, 'title_text'] = title
                                 except:
                                     pass
@@ -287,14 +290,14 @@ for ctr, code in enumerate(district_code_list):
                                     pass
 
                                 # Extra Details
+                                close_things = ''
                                 try:
                                     for other in other_details:
                                         if 'Рядом есть:' in other.text:
                                             close_things = other.text.replace('Рядом есть: ', '')
                                             break
                                 except:
-                                    close_things = ''
-
+                                    pass
                                 if 'Больница' in close_things:
                                     dataframe.at[row, 'hospital'] = True
                                 else:
