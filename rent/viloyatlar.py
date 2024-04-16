@@ -8,6 +8,7 @@ from scrapy import Selector
 from re import compile, sub, findall
 from math import ceil
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 
 regions = ['andizhanskaya-oblast', 'buharskaya-oblast', 'dzhizakskaya-oblast', 'karakalpakstan', 'kashkadarinskaya-oblast',
             'navoijskaya-oblast', 'samarkandskaya-oblast' ,'namanganskaya-oblast', 'surhandarinskaya-oblast',
@@ -40,13 +41,14 @@ month_dict = {
             ' октября ': '-10-', ' ноября ': '-11-', ' декабря ': '-12-',
             compile('^Сегодня.*'): today, compile('^Вчера.*'): yesterday
             }
-# driver = webdriver.Chrome(executable_path=r"C:/SeleniumDrivers/chromedriver.exe")
-options= webdriver.EdgeOptions()
-options.add_argument("headless")
-options.add_argument("disable-gpu")
-options.add_argument('--log-level=3')
-driver = webdriver.Edge(executable_path=r"C:/SeleniumDrivers/Edge/msedgedriver.exe", options=options)
 
+service = Service(executable_path=r"C:/SeleniumDrivers/chromedriver.exe")
+options= webdriver.ChromeOptions()
+options.add_argument("headless")
+options.add_argument("--disable-gpu")
+options.add_argument('--blink-settings=imagesEnabled=false')
+options.add_argument('--log-level=3')
+driver = webdriver.Chrome(service=service, options=options)
 
 for ctr, region in enumerate(regions):
     dataframe = DataFrame(columns=column_names)
@@ -99,7 +101,10 @@ for ctr, region in enumerate(regions):
                         pass
 
                     try:
-                        price_list = soup1.find('h3', class_="css-12vqlj3").text
+                        if soup1.find('h3', class_="css-12vqlj3"):
+                            price_list = soup1.find('h3', class_="css-12vqlj3").text
+                        else:
+                            price_list = soup1.find('meta', attrs={'name' : "description"} )['content'].split(':')[0]
                         num = ""
                         for c in price_list:
                             if c.isdigit():

@@ -8,6 +8,7 @@ from scrapy import Selector
 from re import compile, sub, findall
 from math import ceil
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 
 regions = ['samarkandskaya-oblast', 'buharskaya-oblast']
 
@@ -38,12 +39,13 @@ month_dict = {
             compile('^Сегодня.*'): today, compile('^Вчера.*'): yesterday
             }
 
-# driver = webdriver.Chrome(executable_path=r"C:/SeleniumDrivers/chromedriver.exe")
-options= webdriver.EdgeOptions()
+service = Service(executable_path=r"C:/SeleniumDrivers/chromedriver.exe")
+options= webdriver.ChromeOptions()
 options.add_argument("headless")
-options.add_argument("disable-gpu")
+options.add_argument("--disable-gpu")
+options.add_argument('--blink-settings=imagesEnabled=false')
 options.add_argument('--log-level=3')
-driver = webdriver.Edge(executable_path=r"C:/SeleniumDrivers/Edge/msedgedriver.exe", options=options)
+driver = webdriver.Chrome(service=service, options=options)
 
 type_of_house = ['novostroyki','vtorichnyy-rynok']
 for toh in type_of_house:
@@ -99,7 +101,11 @@ for toh in type_of_house:
                             pass
 
                         try:
-                            price_list = soup1.find('h3', class_="css-12vqlj3").text
+                            if soup1.find('div', class_="css-e2ir3r").text:
+                                price_list = soup1.find('div', class_="css-e2ir3r").text
+                            else:
+                                price_list = soup1.find('meta', attrs={'name' : "description"} )['content'].split(':')[0]
+
                             num = ""
                             for c in price_list:
                                 if c.isdigit():

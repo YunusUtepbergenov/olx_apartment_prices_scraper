@@ -7,9 +7,7 @@ from scrapy import Selector
 from re import compile, sub
 from math import ceil
 from selenium import webdriver
-import time
 from selenium.webdriver.chrome.service import Service
-
 
 district_dict = {
             20: 'Olmazor', 18: 'Bektemir', 13: 'Mirobod', 12: 'Mirzo-Ulugbek',
@@ -17,7 +15,7 @@ district_dict = {
             25: 'Yunusobod', 26: 'Yakkasaroy', 22: 'Yashnobod'
         }
 
-district_code_list = [19]
+district_code_list = [20,18,13,12,19,21,23,24,25,26,22]
 furnished_type = ['yes', 'no']
 comission_type = ['yes', 'no']
 house_type = ['secondary', 'primary']
@@ -48,13 +46,13 @@ month_dict = {
             ' октября ': '-10-', ' ноября ': '-11-', ' декабря ': '-12-',
             compile('^Сегодня.*'): today, compile('^Вчера.*'): yesterday
             }
+
 service = Service(executable_path=r"C:/SeleniumDrivers/chromedriver.exe")
 options= webdriver.ChromeOptions()
-
 options.add_argument("headless")
-options.add_argument("disable-gpu")
+options.add_argument("--disable-gpu")
+options.add_argument('--blink-settings=imagesEnabled=false')
 options.add_argument('--log-level=3')
-
 driver = webdriver.Chrome(service=service, options=options)
 
 for ctr, code in enumerate(district_code_list):
@@ -89,14 +87,7 @@ for ctr, code in enumerate(district_code_list):
                             apartments = all_table.find_all('div', attrs={'data-cy': 'l-card'})
                             for apartment in apartments:
                                 link = apartment.find("a", class_="css-rc5s2u")
-                                #Pasted code
-                                for i in range(5):
-                                    try:
-                                        driver.get("https://www.olx.uz" + link['href'])
-                                        break
-                                    except:
-                                        time.sleep(2)
-                                        continue
+                                driver.get("https://www.olx.uz" + link['href'])
                                 html = driver.page_source
                                 soup1 = BeautifulSoup(html, 'lxml')
                                 html_selector = Selector(text=html)
@@ -114,22 +105,6 @@ for ctr, code in enumerate(district_code_list):
                                     date_xpath = '//*[@id="root"]/div[1]/div[3]/div[2]/div[1]/div[2]/div[1]/span/span'
                                     announcement_date = soup1.find('span', class_='css-19yf5ek').text
                                     dataframe.at[row, 'date'] = announcement_date
-                                except:
-                                    pass
-
-                                try:
-                                    price_list = soup1.find('h3', class_="css-12vqlj3").text
-                                    num = ""
-                                    for c in price_list:
-                                        if c.isdigit():
-                                            num = num + c
-                                    price = float(num)
-
-                                    if price_list.count("сум"):
-                                        price = price / usd_to_uzs
-                                    elif not price_list.count('у.е.'):
-                                        price = nan
-                                    dataframe.at[row, 'price'] = price
                                 except:
                                     pass
 
@@ -164,6 +139,26 @@ for ctr, code in enumerate(district_code_list):
                                                     break
                                             area = int(num)
                                     dataframe.at[row, 'area'] = area
+                                except:
+                                    pass
+
+                                try:
+                                    if soup1.find('div', class_="css-e2ir3r").text:
+                                        price_list = soup1.find('div', class_="css-e2ir3r").text
+                                    else:
+                                        price_list = soup1.find('meta', attrs={'name' : "description"} )['content'].split(':')[0]
+
+                                    num = ""
+                                    for c in price_list:
+                                        if c.isdigit():
+                                            num = num + c
+                                    price = float(num)
+
+                                    if price_list.count("сум"):
+                                        price = price / usd_to_uzs
+                                    elif not price_list.count('у.е.'):
+                                        price = nan
+                                    dataframe.at[row, 'price'] = price
                                 except:
                                     pass
 

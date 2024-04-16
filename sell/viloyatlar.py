@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from re import compile, sub
 from math import ceil
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 import sys
 
 regions = ['andizhanskaya-oblast', 'dzhizakskaya-oblast', 'karakalpakstan', 'kashkadarinskaya-oblast',
@@ -42,12 +43,15 @@ month_dict = {
             compile('^Сегодня.*'): today, compile('^Вчера.*'): yesterday
             }
 
-options= webdriver.EdgeOptions()
+service = Service(executable_path=r"C:/SeleniumDrivers/chromedriver.exe")
+options= webdriver.ChromeOptions()
 options.add_argument("headless")
-options.add_argument("disable-gpu")
+options.add_argument("--disable-gpu")
+options.add_argument('--blink-settings=imagesEnabled=false')
 options.add_argument('--log-level=3')
-driver = webdriver.Edge(executable_path=r"C:/SeleniumDrivers/Edge/msedgedriver.exe", options=options)
+driver = webdriver.Chrome(service=service, options=options)
 
+driver.implicitly_wait(10)
 driver.get('https://cbu.uz/oz/')
 html = driver.page_source
 sp = BeautifulSoup(html, 'html.parser')
@@ -102,12 +106,15 @@ for ctr, region in enumerate(regions):
                         date_xpath = '//*[@id="root"]/div[1]/div[3]/div[2]/div[1]/div[2]/div[1]/span/span'
                         announcement_date = soup1.find('span', class_='css-19yf5ek').text
                         dataframe.at[row, 'date'] = announcement_date
- 
                     except:
                         pass
-
+                    
                     try:
-                        price_list = soup1.find('h3', class_="css-12vqlj3").text
+                        if soup1.find('div', class_="css-e2ir3r").text:
+                            price_list = soup1.find('div', class_="css-e2ir3r").text
+                        else:
+                            price_list = soup1.find('meta', attrs={'name' : "description"} )['content'].split(':')[0]
+
                         num = ""
                         for c in price_list:
                             if c.isdigit():
