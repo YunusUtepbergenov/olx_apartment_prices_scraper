@@ -3,7 +3,7 @@ from re import compile, sub
 from numpy import nan
 
 def house_scrape(apartment, dataframe, row, driver, usd_to_uzs, month_dict, getCity, district_dict, type_of_district, district):
-    link = apartment.find("a", class_="css-qo0cxu")
+    link = apartment.find("a", class_="css-1tqlkj0")
     driver.get("https://www.olx.uz" + link['href'])
     html = driver.page_source
     soup1 = BeautifulSoup(html, 'lxml')
@@ -12,7 +12,7 @@ def house_scrape(apartment, dataframe, row, driver, usd_to_uzs, month_dict, getC
 
     try:
         location = soup1.find('section', class_="css-wefbef")
-        dataframe.at[row, 'city'] = location.find('p', class_="css-1wgiva2").text
+        dataframe.at[row, 'city'] = location.find('p', class_="css-z0m36u").text
         dataframe.at[row, 'district'] = getCity(district_dict, soup1, type_of_district, district)
     except:
         pass
@@ -25,8 +25,8 @@ def house_scrape(apartment, dataframe, row, driver, usd_to_uzs, month_dict, getC
 
     # Other details
     try:
-        other_details_list = soup1.find('div', class_="css-1wws9er")
-        other_details = other_details_list.find_all('p', class_="css-1wgiva2")
+        other_details_list = soup1.find('div', class_="css-41yf00")
+        other_details = other_details_list.find_all('p', class_="css-z0m36u")
 
     except:
         other_details = ''
@@ -189,13 +189,13 @@ def house_scrape(apartment, dataframe, row, driver, usd_to_uzs, month_dict, getC
 
     # Title and text parts
     try:
-        title = soup1.find('h4', class_="css-yde3oc").text
+        title = soup1.find('h4', class_="css-10ofhqw").text
         dataframe.at[row, 'title_text'] = title
     except:
         pass
 
     try:
-        content = soup1.find('div', class_="css-1o924a9").text
+        content = soup1.find('div', class_="css-19duwlz").text
         dataframe.at[row, 'post_text'] = content
     except:
         pass

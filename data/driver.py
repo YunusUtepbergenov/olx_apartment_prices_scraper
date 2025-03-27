@@ -1,11 +1,17 @@
 from selenium import webdriver
 from selenium.webdriver.edge.service import Service
 
-# service = Service(executable_path=r"C:/SeleniumDrivers/Edge/msedgedriver.exe")
-# options= webdriver.EdgeOptions()
+# from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.microsoft import EdgeChromiumDriverManager
 
-service = Service(executable_path=r"C:/SeleniumDrivers/chromedriver.exe")
-options= webdriver.ChromeOptions()
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.edge.options import Options
+
+# service = Service(executable_path=r"C:/SeleniumDrivers/Edge/msedgedriver.exe")
+options= Options()
+
+# service = Service(executable_path=r"C:/SeleniumDrivers/chromedriver.exe")
+# options= webdriver.ChromeOptions()
 
 
 options.add_argument('--log-level=3')
@@ -17,4 +23,6 @@ options.add_experimental_option("excludeSwitches", ["enable-automation"])
 options.add_experimental_option('useAutomationExtension', False)
 
 # driver = webdriver.Edge(service=service, options=options)
-driver = webdriver.Chrome(service=service, options=options)
+# driver = webdriver.Chrome(service=service, options=options)
+
+driver = webdriver.Edge(service=Service(EdgeChromiumDriverManager().install()), options=options)

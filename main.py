@@ -12,7 +12,7 @@ regions = ['andizhanskaya-oblast', 'dzhizakskaya-oblast', 'karakalpakstan', 'kas
 #                     25: 'Yunusobod', 26: 'Yakkasaroy', 22: 'Yashnobod'
 #                 }
 
-tashkent_code_list = [20, 18, 13,12,19,21,23,24,25,26,22]
+tashkent_code_list = [26,22]
 
 tash_obl = [
             'akkurgan', 'almalyk', 'angren', 'ahangaran','bekabad', 'buka','gazalkent', 'gulbahor','durmen', 'dustabad','zangiota', 'keles','kibraj', 
@@ -20,14 +20,14 @@ tash_obl = [
             'yangibazar', 'yangiyul', 'qorasuv', 'mirobod', 'salar', 'tashmore', 'turkiston', 'yangiobod', 'zafar'
            ]
 
-scrape(regions, 'viloyatlar', 'prodazha')
-scrape(tash_obl, 'tash_obl', 'prodazha')
-mergeFiles('tash_obl', 'prodazha')
+# scrape(regions, 'viloyatlar', 'prodazha')
+# scrape(tash_obl, 'tash_obl', 'prodazha')
+# mergeFiles('tash_obl', 'prodazha')
 scrape(tashkent_code_list, 'tashkent', 'prodazha')
 mergeFiles('tashkent', 'prodazha')
 
-scrape(regions, 'viloyatlar', 'arenda-dolgosrochnaya')
-scrape(tash_obl, 'tash_obl', 'arenda-dolgosrochnaya')
-mergeFiles('tash_obl', 'arenda-dolgosrochnaya')
-scrape(tashkent_code_list, 'tashkent', 'arenda-dolgosrochnaya')
-mergeFiles('tashkent', 'arenda-dolgosrochnaya')
+# scrape(regions, 'viloyatlar', 'arenda-dolgosrochnaya')
+# scrape(tash_obl, 'tash_obl', 'arenda-dolgosrochnaya')
+# mergeFiles('tash_obl', 'arenda-dolgosrochnaya')
+# scrape(tashkent_code_list, 'tashkent', 'arenda-dolgosrochnaya')
+# mergeFiles('tashkent', 'arenda-dolgosrochnaya')

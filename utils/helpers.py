@@ -3,7 +3,7 @@ def getCity(district_dict, soup, type, district):
     if type == 'tashkent':
         return district_dict[district]
     else:
-        return soup.find('p', class_="css-nk9te6").text.replace(',', '')
+        return soup.find('p', class_="css-7wnksb").text.replace(',', '')
     
 def makeFolder(scrape_type, type_of_district):
     directory_name = os.getcwd() + '/results/' + scrape_type + '/' + type_of_district
